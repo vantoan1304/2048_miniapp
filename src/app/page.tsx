@@ -1,4 +1,3 @@
-// src/app/page.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -11,11 +10,17 @@ import {
   useWriteContract,
 } from "wagmi";
 import { base } from "wagmi/chains";
-import { keccak256, encodePacked, toBytes, type Hex } from "viem";
+import { encodePacked, keccak256, toBytes, type Hex } from "viem";
 
 import { CONTRACT_ABI, CONTRACT_ADDRESS } from "@/lib/wagmi";
 
 const SIZE = 4;
+
+type Entry = {
+  player: `0x${string}`;
+  score: bigint;
+  timestamp: bigint;
+};
 
 function idx(r: number, c: number) {
   return r * SIZE + c;
@@ -140,8 +145,9 @@ function move(grid: number[], dir: "L" | "R" | "U" | "D"): MoveResult {
   return { next, changed, gained: gainedTotal };
 }
 
-// match contract bản cũ:
-// keccak256( encodePacked("2048|", stateHash, "|", score) )
+// Contract bản cũ expect:
+// keccak256(abi.encodePacked("2048|", stateHash, "|", score)) rồi prefixed()
+// Frontend: signMessage(arrayify(msgHash)) == personal_sign(msgHash)
 function makeMessageHash(stateHash: Hex, score: bigint): Hex {
   return keccak256(
     encodePacked(
@@ -149,6 +155,26 @@ function makeMessageHash(stateHash: Hex, score: bigint): Hex {
       ["2048|", stateHash, "|", score]
     )
   );
+}
+
+async function personalSign(address: `0x${string}`, msgHash: Hex): Promise<Hex> {
+  if (!window.ethereum) throw new Error("No wallet provider (window.ethereum)");
+
+  // nhiều ví dùng [data, address] (OKX/MM)
+  try {
+    const sig = (await window.ethereum.request({
+      method: "personal_sign",
+      params: [msgHash, address],
+    })) as string;
+    return sig as Hex;
+  } catch {
+    // fallback một số ví dùng [address, data]
+    const sig = (await window.ethereum.request({
+      method: "personal_sign",
+      params: [address, msgHash],
+    })) as string;
+    return sig as Hex;
+  }
 }
 
 export default function Page() {
@@ -164,26 +190,23 @@ export default function Page() {
   });
 
   const [score, setScore] = useState(0);
-
-  // ✅ FIX localStorage: init = 0, đọc sau khi mount
-  const [best, setBest] = useState<number>(0);
-
+  const [best, setBest] = useState<number>(0); // ✅ không đọc localStorage lúc init
   const [status, setStatus] = useState("");
-  const [txHash, setTxHash] = useState<string | undefined>();
+  const [txHash, setTxHash] = useState<string>();
 
-  // Mini App ready (tắt splash)
+  // Mini App: tắt splash
   useEffect(() => {
     sdk.actions.ready();
   }, []);
 
-  // load best from localStorage after mount
+  // đọc best sau mount
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = window.localStorage.getItem("best2048");
     setBest(saved ? Number(saved) : 0);
   }, []);
 
-  // persist best
+  // lưu best
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (score > best) {
@@ -192,7 +215,7 @@ export default function Page() {
     }
   }, [score, best]);
 
-  // auto switch Base inside mini app
+  // auto switch Base (8453)
   useEffect(() => {
     if (isConnected && chainId !== base.id) switchChain({ chainId: base.id });
   }, [isConnected, chainId, switchChain]);
@@ -206,11 +229,10 @@ export default function Page() {
 
     setGrid(next);
     setScore((s) => s + res.gained);
-
     setStatus(canMove(next) ? "" : "Game over. New game?");
   };
 
-  // keyboard controls
+  // keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
@@ -231,11 +253,11 @@ export default function Page() {
     };
 
     window.addEventListener("keydown", onKey, { passive: false });
-    return () => window.removeEventListener("keydown", onKey as any);
+    return () => window.removeEventListener("keydown", onKey as unknown as EventListener);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grid]);
 
-  // touch swipe
+  // swipe
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const onTouchStart = (e: React.TouchEvent) => {
@@ -268,7 +290,6 @@ export default function Page() {
     setTxHash(undefined);
   };
 
-  // leaderboard read
   const { data: leaderboard, refetch: refetchLb, isLoading: loadingLb } =
     useReadContract({
       address: CONTRACT_ADDRESS,
@@ -278,12 +299,8 @@ export default function Page() {
     });
 
   const rows = useMemo(() => {
-    const lb = (leaderboard as any[]) || [];
-    return lb.map((x) => ({
-      player: x.player as string,
-      score: BigInt(x.score?.toString?.() ?? x.score),
-      timestamp: BigInt(x.timestamp?.toString?.() ?? x.timestamp),
-    }));
+    const lb = (leaderboard ?? []) as unknown as readonly Entry[];
+    return lb;
   }, [leaderboard]);
 
   const submitScore = async () => {
@@ -293,20 +310,14 @@ export default function Page() {
     try {
       setStatus("Signing message...");
 
-      // stateHash: hash của state game (grid + score)
+      // stateHash từ state game
       const stateStr = JSON.stringify({ g: grid, s: score });
-      const stateHash = keccak256(toBytes(stateStr)); // bytes32
+      const stateHash = keccak256(toBytes(stateStr));
 
       const msgHash = makeMessageHash(stateHash, BigInt(score));
+      const sig = await personalSign(address, msgHash);
 
-      // personal_sign (EIP-191)
-      // param order: [data, address] (most wallets)
-      const sig = await (window as any).ethereum.request({
-        method: "personal_sign",
-        params: [msgHash, address],
-      });
-
-      setStatus("Submitting onchain (Base)...");
+      setStatus("Submitting onchain...");
       const hash = await writeContractAsync({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
@@ -317,9 +328,11 @@ export default function Page() {
       setTxHash(hash);
       setStatus("Submitted! Refreshing leaderboard...");
       setTimeout(() => refetchLb(), 1500);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : "Submit failed";
       console.error(e);
-      setStatus(e?.shortMessage || e?.message || "Submit failed");
+      setStatus(msg);
     }
   };
 
