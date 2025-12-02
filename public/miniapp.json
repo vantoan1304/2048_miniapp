@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "5050taixiu",
+  "name": "5050taixiu",
+  "description": "A 50-50 TaiXiu style lottery game.",
+  "icon": "https://baseapp5050.vercel.app/5050.png",
+  "web_url": "https://baseapp5050.vercel.app",
+  "developer": {
+    "name": "Toandev",
+    "url": "https://thietkeweb2tr.com"
+  }
+}

@@ -1,0 +1,52 @@
+.ctn {
+    padding: 30px;
+   
+    border-radius: 5px;
+    background: #f5ecfd;
+}
+
+.ctn h1 {
+    margin: 0 0 20px;
+    color: #000;
+    font-size: 20px;
+}
+
+.ctn h1 span {
+    padding-top: .125rem;
+    padding-bottom: .125rem;
+    background-color: rgb(239 68 68 / .1);
+    color: #ef4444;
+    box-sizing: border-box;
+    border: 0 solid #e5e7eb;
+    padding-left: .625rem;
+    padding-right: .625rem;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 500;
+    font-size: .75rem;
+}
+
+.ctn button {
+    background-image: linear-gradient(to top, #714afe, #1061fd);
+    width: 100%;
+    color: #fff;
+    text-transform: uppercase;
+}
+
+.ctn li {
+    color: #000;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 7px;
+    padding-bottom: 7px;
+}
+
+.ctn li:last-child {
+     border-bottom: 0;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.ctn .streak {
+    font-weight: bold;
+    color: #0028c3;
+}
