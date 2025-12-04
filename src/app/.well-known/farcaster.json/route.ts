@@ -14,32 +14,32 @@ export async function GET() {
   
         },
         "baseBuilder": {
-            "allowedAddresses": ["0xe31B0a1AB35DDA75d42A760a0FD0ab90f47A801c"] // add your Base Account address here
+            "allowedAddresses": ["0x5FbDB2315678afecb367f032d93F642f64180aa3"] // add your Base Account address here
         },
         "miniapp": {
             "version": "1",
             "name": "GMBase",
-            "homeUrl": "https://gmbaseapp-xx84.vercel.app/",
-            "iconUrl": "https://gmbaseapp-xx84.vercel.app/gm.png",
-            "imageUrl": "https://gmbaseapp-xx84.vercel.app/gm.png",
+            "homeUrl": "https://2048-miniapp-three.vercel.app/",
+            "iconUrl": "https://2048-miniapp-three.vercel.app/gm.png",
+            "imageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
             "buttonTitle": "GMBase Miniapp",
-            "splashImageUrl": "https://gmbaseapp-xx84.vercel.app/gm.png",
+            "splashImageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
             "splashBackgroundColor": "#000000",
             "webhookUrl": "https://ex.co/api/webhook",
             "subtitle": "Fast, fun, social",
             "description": "Active Base",
             "screenshotUrls": [
-                "https://gmbaseapp-xx84.vercel.app/ss1.png",
-                "https://gmbaseapp-xx84.vercel.app/ss2.png",
-                "https://gmbaseapp-xx84.vercel.app/ss3.png"
+                "https://2048-miniapp-three.vercel.app/ss1.png",
+                "https://2048-miniapp-three.vercel.app/ss2.png",
+                "https://2048-miniapp-three.vercel.app/ss3.png"
             ],
             "primaryCategory": "social",
             "tags": ["example", "miniapp", "baseapp"],
-            "heroImageUrl": "https://gmbaseapp-xx84.vercel.app/gm.png",
+            "heroImageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
             "tagline": "Play instantly", 
             "ogTitle": "GMBase Miniapp",
             "ogDescription": "Active Base",
-            "ogImageUrl": "https://gmbaseapp-xx84.vercel.app/gm.png",
+            "ogImageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
             "noindex": true
         }
     }); // see the next step for the manifest_json_object
