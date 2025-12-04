@@ -18,16 +18,16 @@ export async function GET() {
         },
         "miniapp": {
             "version": "1", 
-            "name": "GMBase",
+            "name": "MiniGame-2048",
             "homeUrl": "https://2048-miniapp-three.vercel.app/",
             "iconUrl": "https://2048-miniapp-three.vercel.app/gm.png",
             "imageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
-            "buttonTitle": "GMBase Miniapp",
+            "buttonTitle": "MiniGame-2048",
             "splashImageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
             "splashBackgroundColor": "#000000",
             "webhookUrl": "https://ex.co/api/webhook",
             "subtitle": "Fast, fun, social",
-            "description": "Active Base",
+            "description": "Play game 2048",
             "screenshotUrls": [
                 "https://2048-miniapp-three.vercel.app/ss1.png",
                 "https://2048-miniapp-three.vercel.app/ss2.png",
@@ -37,8 +37,8 @@ export async function GET() {
             "tags": ["example", "miniapp", "baseapp"],
             "heroImageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
             "tagline": "Play instantly", 
-            "ogTitle": "GMBase Miniapp",
-            "ogDescription": "Active Base",
+            "ogTitle": "MiniGame-2048",
+            "ogDescription": "Play game 2048",
             "ogImageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
             "noindex": true
         }
