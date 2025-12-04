@@ -14,10 +14,10 @@ export async function GET() {
   
         },
         "baseBuilder": {
-            "allowedAddresses": ["0x5FbDB2315678afecb367f032d93F642f64180aa3"] // add your Base Account address here
+            "allowedAddresses": ["0x2f54c98DAfbD710a73C7C39cC872e57CfD2aF94C"] // add your Base Account address here
         },
         "miniapp": {
-            "version": "1",
+            "version": "1", 
             "name": "GMBase",
             "homeUrl": "https://2048-miniapp-three.vercel.app/",
             "iconUrl": "https://2048-miniapp-three.vercel.app/gm.png",
