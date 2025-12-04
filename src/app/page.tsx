@@ -393,7 +393,7 @@ export default function Page() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">Play Game 2048 on Base</h1>
-            <p className="text-xs text-white/60">Farcaster Mini App • By Vantoan 1</p>
+            <p className="text-xs text-white/60">Farcaster Mini App • By Toandev</p>
           </div>
           <button
             onClick={newGame}
