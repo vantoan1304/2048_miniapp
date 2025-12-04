@@ -7,13 +7,14 @@ function withValidProperties(properties: Record<string, undefined | string | str
 export async function GET() {
     const URL = process.env.NEXT_PUBLIC_URL as string;
     return Response.json({
-          "accountAssociation": {
+            "accountAssociation": {
             "header": "eyJmaWQiOjIxNjM1OCwidHlwZSI6ImF1dGgiLCJrZXkiOiIweDkyMENlN2Q5NjVhYjY0OEUyNDE1NDE3NUZiMjE3NjQ3MEYxMzRhMzkifQ",
-            "payload": "eyJkb21haW4iOiJnbWJhc2VhcHAteHg4NC52ZXJjZWwuYXBwIn0",
-            "signature": "RYcFzSj88Zlh9emj/8YJzcfKOfHgonb/IlSuI9MhTaAXo2umyCvcE2Q/a2MWMy+QIUaJOSpyfbgBApesVzqsURw="
+            "payload": "eyJkb21haW4iOiIyMDQ4LW1pbmlhcHAtdGhyZWUudmVyY2VsLmFwcCJ9",
+            "signature": "5EQ6Tg2QcJFk8fPzzcJXhbkhp6VS5//POi0OP+duPQd1WyykABarQavPzag2Jus6xz7QozjBkn6xlPmIixFw6Bw="
+  
         },
         "baseBuilder": {
-            "allowedAddresses": ["0xED3498e7Be625CB2Ba9747a53086211f4CF1A0f9"] // add your Base Account address here
+            "allowedAddresses": ["0xe31B0a1AB35DDA75d42A760a0FD0ab90f47A801c"] // add your Base Account address here
         },
         "miniapp": {
             "version": "1",
