@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import {
@@ -8,9 +8,16 @@ import {
   useReadContract,
   useSwitchChain,
   useWriteContract,
+  useSignMessage,
 } from "wagmi";
 import { base } from "wagmi/chains";
-import { encodePacked, keccak256, toBytes, type Hex } from "viem";
+import {
+  encodePacked,
+  keccak256,
+  toBytes,
+  hexToBytes,
+  type Hex,
+} from "viem";
 
 import { CONTRACT_ABI, CONTRACT_ADDRESS } from "@/lib/wagmi";
 
@@ -145,68 +152,80 @@ function move(grid: number[], dir: "L" | "R" | "U" | "D"): MoveResult {
   return { next, changed, gained: gainedTotal };
 }
 
-// Contract bản cũ expect:
-// keccak256(abi.encodePacked("2048|", stateHash, "|", score)) rồi prefixed()
-// Frontend: signMessage(arrayify(msgHash)) == personal_sign(msgHash)
-function makeMessageHash(stateHash: Hex, score: bigint): Hex {
+/**
+ * MUST match Solidity:
+ * keccak256(abi.encodePacked("2048|", stateHash, "|", score, "|", nonce, "|", chainId, "|", contractAddress))
+ */
+function makeRawHash(
+  stateHash: Hex,
+  score: bigint,
+  nonce: bigint,
+  chainId: number,
+  contractAddress: `0x${string}`
+): Hex {
   return keccak256(
     encodePacked(
-      ["string", "bytes32", "string", "uint256"],
-      ["2048|", stateHash, "|", score]
+      [
+        "string",
+        "bytes32",
+        "string",
+        "uint256",
+        "string",
+        "uint256",
+        "string",
+        "uint256",
+        "string",
+        "address",
+      ],
+      [
+        "2048|",
+        stateHash,
+        "|",
+        score,
+        "|",
+        nonce,
+        "|",
+        BigInt(chainId),
+        "|",
+        contractAddress,
+      ]
     )
   );
-}
-
-async function personalSign(address: `0x${string}`, msgHash: Hex): Promise<Hex> {
-  if (!window.ethereum) throw new Error("No wallet provider (window.ethereum)");
-
-  // nhiều ví dùng [data, address] (OKX/MM)
-  try {
-    const sig = (await window.ethereum.request({
-      method: "personal_sign",
-      params: [msgHash, address],
-    })) as string;
-    return sig as Hex;
-  } catch {
-    // fallback một số ví dùng [address, data]
-    const sig = (await window.ethereum.request({
-      method: "personal_sign",
-      params: [address, msgHash],
-    })) as string;
-    return sig as Hex;
-  }
 }
 
 export default function Page() {
   const { address, isConnected, chainId } = useAccount();
   const { switchChain } = useSwitchChain();
   const { writeContractAsync, isPending } = useWriteContract();
+  const { signMessageAsync } = useSignMessage();
 
-  const [grid, setGrid] = useState<number[]>(() => {
-    let g = new Array(SIZE * SIZE).fill(0);
-    g = addRandomTile(g);
-    g = addRandomTile(g);
-    return g;
-  });
+  // hydration-safe init (đỡ lỗi đỏ/mismatch)
+  const [grid, setGrid] = useState<number[]>(() => new Array(SIZE * SIZE).fill(0));
+  const [hydrated, setHydrated] = useState(false);
 
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState<number>(0); // ✅ không đọc localStorage lúc init
+  const [best, setBest] = useState<number>(0);
   const [status, setStatus] = useState("");
   const [txHash, setTxHash] = useState<string>();
 
-  // Mini App: tắt splash
   useEffect(() => {
     sdk.actions.ready();
   }, []);
 
-  // đọc best sau mount
+  useEffect(() => {
+    let g = new Array(SIZE * SIZE).fill(0);
+    g = addRandomTile(g);
+    g = addRandomTile(g);
+    setGrid(g);
+    setHydrated(true);
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = window.localStorage.getItem("best2048");
     setBest(saved ? Number(saved) : 0);
   }, []);
 
-  // lưu best
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (score > best) {
@@ -215,10 +234,19 @@ export default function Page() {
     }
   }, [score, best]);
 
-  // auto switch Base (8453)
+  // auto switch Base mainnet
   useEffect(() => {
     if (isConnected && chainId !== base.id) switchChain({ chainId: base.id });
   }, [isConnected, chainId, switchChain]);
+
+  // ✅ read nonce onchain
+  const { data: nonceData, refetch: refetchNonce } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: "nonces",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && !!CONTRACT_ADDRESS },
+  });
 
   const doMove = (dir: "L" | "R" | "U" | "D") => {
     const res = move(grid, dir);
@@ -232,7 +260,6 @@ export default function Page() {
     setStatus(canMove(next) ? "" : "Game over. New game?");
   };
 
-  // keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
@@ -253,11 +280,11 @@ export default function Page() {
     };
 
     window.addEventListener("keydown", onKey, { passive: false });
-    return () => window.removeEventListener("keydown", onKey as unknown as EventListener);
+    return () =>
+      window.removeEventListener("keydown", onKey as unknown as EventListener);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grid]);
 
-  // swipe
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const onTouchStart = (e: React.TouchEvent) => {
@@ -303,10 +330,11 @@ export default function Page() {
     return lb;
   }, [leaderboard]);
 
-
   const submitScore = async () => {
+    if (!CONTRACT_ADDRESS) return setStatus("Missing CONTRACT_ADDRESS (.env.local)");
     if (!isConnected || !address) return setStatus("Connect wallet first.");
     if (chainId !== base.id) return setStatus("Please switch to Base.");
+    if (nonceData === undefined) return setStatus("Loading nonce...");
 
     try {
       setStatus("Signing message...");
@@ -315,24 +343,34 @@ export default function Page() {
       const stateStr = JSON.stringify({ g: grid, s: score });
       const stateHash = keccak256(toBytes(stateStr));
 
-      const msgHash = makeMessageHash(stateHash, BigInt(score));
-        // ✅ LOG 1: trước khi ký
-    console.log("=== DEBUG submitScore ===");
-    console.log("address:", address);
-    console.log("chainId:", chainId);
-    console.log("contract:", CONTRACT_ADDRESS);
-    console.log("score:", score);
-    console.log("stateHash:", stateHash);
-    console.log("msgHash:", msgHash);
+      const nonce = nonceData as bigint;
 
-    const sig = await personalSign(address, msgHash);
+      // ✅ RAW hash must match Solidity
+      const raw = makeRawHash(
+        stateHash,
+        BigInt(score),
+        nonce,
+        chainId!,
+        CONTRACT_ADDRESS
+      );
 
-    // ✅ LOG 2: sau khi ký
-    console.log("sig:", sig);
-    console.log("==========================");
-     
+      // ✅ DEBUG (optional)
+      console.log("=== DEBUG submitScore ===");
+      console.log("address:", address);
+      console.log("chainId:", chainId);
+      console.log("contract:", CONTRACT_ADDRESS);
+      console.log("score:", score);
+      console.log("nonce(onchain):", nonce.toString());
+      console.log("stateHash:", stateHash);
+      console.log("raw:", raw);
 
-      
+      // ✅ SIGN bytes32 (not string)
+      const sig = (await signMessageAsync({
+        message: { raw: hexToBytes(raw) }, // Uint8Array(32)
+      })) as Hex;
+
+      console.log("sig:", sig);
+      console.log("==========================");
 
       setStatus("Submitting onchain...");
       const hash = await writeContractAsync({
@@ -344,12 +382,13 @@ export default function Page() {
 
       setTxHash(hash);
       setStatus("Submitted! Refreshing leaderboard...");
-      setTimeout(() => refetchLb(), 1500);
+      setTimeout(() => {
+        refetchLb();
+        refetchNonce?.();
+      }, 1500);
     } catch (e: unknown) {
-      const msg =
-        e instanceof Error ? e.message : "Submit failed";
       console.error(e);
-      setStatus(msg);
+      setStatus(e instanceof Error ? e.message : "Submit failed");
     }
   };
 
@@ -363,9 +402,7 @@ export default function Page() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">Play Game 2048 on Base</h1>
-            <p className="text-xs text-white/60">
-              Farcaster Mini App • By Vantoan
-            </p>
+            <p className="text-xs text-white/60">Farcaster Mini App • By Vantoan 1</p>
           </div>
           <button
             onClick={newGame}
@@ -390,27 +427,33 @@ export default function Page() {
           </div>
         </div>
 
-        {status && <div className="mt-3 text-sm text-white/70">{status}</div>}
+        {status && <div className="mt-3 text-sm text-white/70 whitespace-pre-wrap">{status}</div>}
 
-        <div
-          className="mt-4 grid grid-cols-4 gap-2 rounded-2xl border border-white/10 bg-black/40 p-3 select-none"
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-          style={{ touchAction: "none" }}
-        >
-          {grid.map((v, i) => (
-            <div
-              key={i}
-              className={[
-                "aspect-square rounded-xl flex items-center justify-center font-extrabold",
-                v === 0 ? "bg-white/5 text-transparent" : "bg-white/10 text-white",
-                v >= 128 ? "text-lg" : "text-2xl",
-              ].join(" ")}
-            >
-              {v === 0 ? "" : v}
-            </div>
-          ))}
-        </div>
+        {!hydrated ? (
+          <div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-3">
+            <div className="h-72 animate-pulse rounded-xl bg-white/5" />
+          </div>
+        ) : (
+          <div
+            className="mt-4 grid grid-cols-4 gap-2 rounded-2xl border border-white/10 bg-black/40 p-3 select-none"
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+            style={{ touchAction: "none" }}
+          >
+            {grid.map((v, i) => (
+              <div
+                key={i}
+                className={[
+                  "aspect-square rounded-xl flex items-center justify-center font-extrabold",
+                  v === 0 ? "bg-white/5 text-transparent" : "bg-white/10 text-white",
+                  v >= 128 ? "text-lg" : "text-2xl",
+                ].join(" ")}
+              >
+                {v === 0 ? "" : v}
+              </div>
+            ))}
+          </div>
+        )}
 
         <button
           onClick={submitScore}
@@ -434,10 +477,7 @@ export default function Page() {
         <div className="mt-6 pt-4 border-t border-white/10">
           <div className="flex items-center justify-between">
             <div className="font-semibold">Leaderboard</div>
-            <button
-              onClick={() => refetchLb()}
-              className="text-xs text-sky-400 underline"
-            >
+            <button onClick={() => refetchLb()} className="text-xs text-sky-400 underline">
               Refresh
             </button>
           </div>
@@ -453,18 +493,14 @@ export default function Page() {
                   <span className="text-white/80">
                     #{i + 1} {r.player.slice(0, 6)}…{r.player.slice(-4)}
                   </span>
-                  <span className="font-semibold text-yellow-300">
-                    {r.score.toString()}
-                  </span>
+                  <span className="font-semibold text-yellow-300">{r.score.toString()}</span>
                 </li>
               ))}
             </ol>
           )}
         </div>
 
-        <p className="mt-4 text-xs text-white/50">
-          Controls: Arrow keys / WASD / Swipe.
-        </p>
+        <p className="mt-4 text-xs text-white/50">Controls: Arrow keys / WASD / Swipe.</p>
       </div>
     </main>
   );
