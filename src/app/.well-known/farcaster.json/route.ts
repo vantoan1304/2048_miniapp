@@ -14,15 +14,15 @@ export async function GET() {
   
         },
         "baseBuilder": {
-            "allowedAddresses": ["0x2f54c98DAfbD710a73C7C39cC872e57CfD2aF94C"] // add your Base Account address here
+            "allowedAddresses": ["0x2f54c98DAfbD710a73C7C39cC872e57CfD2aF94C"]
         },
         "miniapp": {
             "version": "1", 
-            "name": "MiniGame-2048",
+            "name": "Game2048",
             "homeUrl": "https://2048-miniapp-three.vercel.app/",
             "iconUrl": "https://2048-miniapp-three.vercel.app/gm.png",
             "imageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
-            "buttonTitle": "MiniGame-2048",
+            "buttonTitle": "MiniGame2048",
             "splashImageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
             "splashBackgroundColor": "#000000",
             "webhookUrl": "https://ex.co/api/webhook",
@@ -37,10 +37,10 @@ export async function GET() {
             "tags": ["example", "miniapp", "baseapp"],
             "heroImageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
             "tagline": "Play instantly", 
-            "ogTitle": "MiniGame-2048",
+            "ogTitle": "Game2048",
             "ogDescription": "Play game 2048",
             "ogImageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
             "noindex": true
         }
-    }); // see the next step for the manifest_json_object
+    });
 }

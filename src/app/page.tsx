@@ -303,6 +303,7 @@ export default function Page() {
     return lb;
   }, [leaderboard]);
 
+
   const submitScore = async () => {
     if (!isConnected || !address) return setStatus("Connect wallet first.");
     if (chainId !== base.id) return setStatus("Please switch to Base.");
@@ -315,7 +316,23 @@ export default function Page() {
       const stateHash = keccak256(toBytes(stateStr));
 
       const msgHash = makeMessageHash(stateHash, BigInt(score));
-      const sig = await personalSign(address, msgHash);
+        // ✅ LOG 1: trước khi ký
+    console.log("=== DEBUG submitScore ===");
+    console.log("address:", address);
+    console.log("chainId:", chainId);
+    console.log("contract:", CONTRACT_ADDRESS);
+    console.log("score:", score);
+    console.log("stateHash:", stateHash);
+    console.log("msgHash:", msgHash);
+
+    const sig = await personalSign(address, msgHash);
+
+    // ✅ LOG 2: sau khi ký
+    console.log("sig:", sig);
+    console.log("==========================");
+     
+
+      
 
       setStatus("Submitting onchain...");
       const hash = await writeContractAsync({
