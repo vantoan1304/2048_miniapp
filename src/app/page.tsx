@@ -354,23 +354,14 @@ export default function Page() {
         CONTRACT_ADDRESS
       );
 
-      // ✅ DEBUG (optional)
-      console.log("=== DEBUG submitScore ===");
-      console.log("address:", address);
-      console.log("chainId:", chainId);
-      console.log("contract:", CONTRACT_ADDRESS);
-      console.log("score:", score);
-      console.log("nonce(onchain):", nonce.toString());
-      console.log("stateHash:", stateHash);
-      console.log("raw:", raw);
+      
 
       // ✅ SIGN bytes32 (not string)
       const sig = (await signMessageAsync({
-        message: { raw: hexToBytes(raw) }, // Uint8Array(32)
-      })) as Hex;
-
-      console.log("sig:", sig);
-      console.log("==========================");
+        message: { raw: hexToBytes(raw) },
+      })) 
+      
+  
 
       setStatus("Submitting onchain...");
       const hash = await writeContractAsync({
