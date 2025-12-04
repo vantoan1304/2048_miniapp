@@ -345,9 +345,9 @@ export default function Page() {
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">2048 on Base</h1>
+            <h1 className="text-2xl font-bold">Play Game 2048 on Base</h1>
             <p className="text-xs text-white/60">
-              Farcaster Mini App • Hybrid leaderboard
+              Farcaster Mini App • By Vantoan
             </p>
           </div>
           <button

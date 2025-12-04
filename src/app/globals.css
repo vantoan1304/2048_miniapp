@@ -167,5 +167,10 @@ button[data-testid="rk-connect-button"] {
 }
 
 body, p {
-  color: #000 
+  color: #fff
+}
+
+h1 {
+      font-size: 1.5rem;
+    color: #0040ff;
 }
