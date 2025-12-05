@@ -12,7 +12,7 @@ export const metadata: Metadata = {
       "version": "1",
       "imageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
       "button": {
-        "title": "Open GMBase",
+        "title": "Open Game2048",
         "action": {
           "type": "launch_frame",
           "name": "Game2048",
