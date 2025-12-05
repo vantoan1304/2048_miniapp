@@ -15,7 +15,7 @@ export const metadata: Metadata = {
         "title": "Open GMBase",
         "action": {
           "type": "launch_frame",
-          "name": "GMBase",
+          "name": "Game2048",
           "url": "https://2048-miniapp-three.vercel.app/",
           "splashImageUrl": "https://2048-miniapp-three.vercel.app/gm.png",
           "splashBackgroundColor": "#000000"
